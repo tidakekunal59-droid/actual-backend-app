@@ -26,7 +26,7 @@ exports.onUserCreate = functions.auth.user().onCreate(async (user) => {
                 // Randomly select between two profile images
         const profileImages = [
             "https://firebasestorage.googleapis.com/v0/b/imagelocation",
-            "https://firebasestorage.googleapis.com/v0/b/imagelocation"
+            "https://firebasestorage.googleapis.com/v0/b/imagelocation_alt"
         ];
         const randomProfileImage = profileImages[Math.floor(Math.random() * profileImages.length)];
         // Store profileImage and userEmails directly in the user's document in the 'userProfile' field
