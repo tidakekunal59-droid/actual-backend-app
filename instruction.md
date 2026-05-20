@@ -11,6 +11,6 @@ Your task is to fix the following issues:
    - When updating a task's priority (`updatePriority`), the queue fails to re-sort itself, resulting in priority inversion where higher priority tasks don't get executed first.
    - When a task is marked as `complete`, the `processing` Set fails to remove the `taskId`, causing a memory leak.
 
-The test suite in `src/scheduler/Scheduler.test.js` currently fails because of these issues.
+The task's test suite currently fails because of these issues.
 
-**Goal**: Apply fixes to `src/scheduler/Queue.js`, `src/scheduler/Worker.js`, and `src/scheduler/Scheduler.js` so that all tests pass. Do not modify the tests themselves.
+**Goal**: Apply fixes to `src/scheduler/Queue.js`, `src/scheduler/Worker.js`, and `src/scheduler/Scheduler.js` so that all tests pass.
