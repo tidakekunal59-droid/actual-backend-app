@@ -1,15 +1,21 @@
 schema_version = "1.1"
+author_name = "Chitra"
+author_email = "novazeus12@gmail.com"
+tags = ["sysadmin", "linux", "nginx", "ufw", "systemd", "cron"]
 
 [task]
 name        = "sysadmin/full-server-setup"
 description = "A comprehensive system administration task setting up Nginx, a custom vhost, UFW, a sudo user, a systemd service, and a cron job."
-authors     = [{ name = "System Administrator", email = "admin@example.com" }]
+authors     = [{ name = "Chitra", email = "novazeus12@gmail.com" }]
 author_name = "Chitra"
 author_email = "novazeus12@gmail.com"
 tags        = ["sysadmin", "linux", "nginx", "ufw", "systemd", "cron"]
 keywords    = ["sysadmin", "linux", "nginx", "ufw", "systemd", "cron"]
 
 [metadata]
+author_name = "Chitra"
+author_email = "novazeus12@gmail.com"
+tags = ["sysadmin", "linux", "nginx", "ufw", "systemd", "cron"]
 difficulty = "intermediate"
 difficulty_explanation = "Requires intermediate to advanced Linux system administration skills."
 solution_explanation = "The solution script automates standard Linux command-line tools to configure Nginx, UFW, user management, and systemd services system-wide."
