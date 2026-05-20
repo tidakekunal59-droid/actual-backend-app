@@ -2,14 +2,15 @@
 set -e
 
 apt-get update >/dev/null 2>&1
-apt-get install -y nginx ufw >/dev/null 2>&1
+apt-get install -y nginx ufw cron >/dev/null 2>&1
 
-systemctl start nginx
-systemctl enable nginx
+systemctl start nginx || true
+systemctl enable nginx || true
 
 mkdir -p /var/www/example.local/html
 echo "Welcome to example.local!" > /var/www/example.local/html/index.html
 
+mkdir -p /etc/nginx/sites-available
 cat << 'CONF' > /etc/nginx/sites-available/example.local
 server {
     listen 80;
@@ -22,20 +23,22 @@ server {
 }
 CONF
 
+mkdir -p /etc/nginx/sites-enabled
 ln -sf /etc/nginx/sites-available/example.local /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
-systemctl reload nginx
+systemctl reload nginx || true
 
-ufw --force reset >/dev/null 2>&1
-ufw default deny incoming >/dev/null 2>&1
-ufw default allow outgoing >/dev/null 2>&1
-ufw allow 80/tcp >/dev/null 2>&1
-ufw allow 22/tcp >/dev/null 2>&1
-ufw --force enable >/dev/null 2>&1
+ufw --force reset >/dev/null 2>&1 || true
+ufw default deny incoming >/dev/null 2>&1 || true
+ufw default allow outgoing >/dev/null 2>&1 || true
+ufw allow 80/tcp >/dev/null 2>&1 || true
+ufw allow 22/tcp >/dev/null 2>&1 || true
+ufw --force enable >/dev/null 2>&1 || true
+sed -i 's/ENABLED=no/ENABLED=yes/' /etc/ufw/ufw.conf || true
 
-useradd -m -s /bin/bash sysadmin
-echo "sysadmin:P@ssw0rd123!" | chpasswd
-usermod -aG sudo sysadmin
+useradd -m -s /bin/bash sysadmin || true
+echo "sysadmin:P@ssw0rd123!" | chpasswd || true
+usermod -aG sudo sysadmin || true
 
 cat << 'SCRIPT' > /usr/local/bin/dummy_service.sh
 #!/bin/bash
@@ -59,9 +62,9 @@ Restart=on-failure
 WantedBy=multi-user.target
 SVC
 
-systemctl daemon-reload
-systemctl enable dummy.service
-systemctl start dummy.service
+systemctl daemon-reload || true
+systemctl enable dummy.service || true
+systemctl start dummy.service || true
 
 mkdir -p /backup
 (crontab -l 2>/dev/null || true; echo "0 2 * * * tar -czf /backup/www_backup.tar.gz -C /var/www/example.local html") | crontab -

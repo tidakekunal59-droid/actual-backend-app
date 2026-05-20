@@ -5,8 +5,10 @@ mkdir -p /logs/verifier/
 
 echo "Running tests using pytest..."
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Run pytest on the test_system.py file
-python3 -m pytest /tests/test_system.py -v
+python3 -m pytest "$DIR/test_system.py" -v
 
 # Check the exit status of pytest
 if [ $? -eq 0 ]; then
