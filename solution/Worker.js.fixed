@@ -1,0 +1,38 @@
+class Worker {
+  constructor(id, scheduler) {
+    this.id = id;
+    this.scheduler = scheduler;
+    this.isIdle = true;
+    this.currentTask = null;
+  }
+
+  async execute(task) {
+    this.isIdle = false;
+    this.currentTask = task;
+
+    return new Promise((resolve, reject) => {
+      const cancelListener = (taskId) => {
+        if (this.currentTask && this.currentTask.id === taskId) {
+          this.scheduler.removeListener('cancel', cancelListener);
+          reject(new Error('Task Cancelled'));
+          this.isIdle = true;
+          this.currentTask = null;
+        }
+      };
+
+      this.scheduler.on('cancel', cancelListener);
+
+      // Simulate async task execution
+      setTimeout(() => {
+        if (this.currentTask && this.currentTask.id === task.id) {
+          this.scheduler.removeListener('cancel', cancelListener);
+          resolve(task.result || 'Success');
+          this.isIdle = true;
+          this.currentTask = null;
+        }
+      }, task.duration || 10);
+    });
+  }
+}
+
+module.exports = { Worker };
