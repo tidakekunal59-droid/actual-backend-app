@@ -4,9 +4,13 @@ schema_version = "1.1"
 name        = "sysadmin/full-server-setup"
 description = "A comprehensive system administration task setting up Nginx, a custom vhost, UFW, a sudo user, a systemd service, and a cron job."
 authors     = [{ name = "System Administrator", email = "admin@example.com" }]
+author_name = "Chitra"
+author_email = "novazeus12@gmail.com"
+tags        = ["sysadmin", "linux", "nginx", "ufw", "systemd", "cron"]
 keywords    = ["sysadmin", "linux", "nginx", "ufw", "systemd", "cron"]
 
 [metadata]
+difficulty = "intermediate"
 difficulty_explanation = "Requires intermediate to advanced Linux system administration skills."
 category              = "administration"
 
