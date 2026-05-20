@@ -1,0 +1,45 @@
+schema_version = "1.1"
+author_name = "Chitra"
+author_email = "novazeus12@gmail.com"
+tags = ["sysadmin", "linux", "nginx", "ufw", "systemd", "cron"]
+
+[task]
+name        = "sysadmin/full-server-setup"
+description = "A comprehensive system administration task setting up Nginx, a custom vhost, UFW, a sudo user, a systemd service, and a cron job."
+authors     = [{ name = "Chitra", email = "novazeus12@gmail.com" }]
+author_name = "Chitra"
+author_email = "novazeus12@gmail.com"
+tags        = ["sysadmin", "linux", "nginx", "ufw", "systemd", "cron"]
+keywords    = ["sysadmin", "linux", "nginx", "ufw", "systemd", "cron"]
+
+[metadata]
+author_name = "Chitra"
+author_email = "novazeus12@gmail.com"
+tags = ["sysadmin", "linux", "nginx", "ufw", "systemd", "cron"]
+difficulty = "intermediate"
+difficulty_explanation = "Requires intermediate to advanced Linux system administration skills."
+solution_explanation = "The solution script automates standard Linux command-line tools to configure Nginx, UFW, user management, and systemd services system-wide."
+verification_explanation = "The verifier relies on bash tools (systemctl, dpkg, ufw, crontab, curl) to assert that each component is correctly configured."
+expert_time_estimate_hours = 0.5
+category              = "administration"
+
+[verifier]
+timeout_sec = 180.0
+user        = "root"
+
+[agent]
+timeout_sec = 600.0
+user        = "root"
+
+[solution]
+env = {}
+
+[environment]
+build_timeout_sec = 600.0
+os               = "linux"
+cpus             = 2
+memory_mb        = 2048
+storage_mb       = 10240
+gpus             = 0
+allow_internet   = true
+env              = {}
