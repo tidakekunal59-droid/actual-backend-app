@@ -12,6 +12,9 @@ keywords    = ["sysadmin", "linux", "nginx", "ufw", "systemd", "cron"]
 [metadata]
 difficulty = "intermediate"
 difficulty_explanation = "Requires intermediate to advanced Linux system administration skills."
+solution_explanation = "The solution script automates standard Linux command-line tools to configure Nginx, UFW, user management, and systemd services system-wide."
+verification_explanation = "The verifier relies on bash tools (systemctl, dpkg, ufw, crontab, curl) to assert that each component is correctly configured."
+expert_time_estimate_hours = 0.5
 category              = "administration"
 
 [verifier]

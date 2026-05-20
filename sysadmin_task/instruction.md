@@ -1,6 +1,6 @@
 # Comprehensive System Administration Task
 
-Your goal is to perform a series of standard system administration tasks to configure this Ubuntu server. You have root access. Complete the following 6 objectives.
+Your goal is to perform a series of standard system administration tasks to configure this Ubuntu server. You have root access. Complete the following 6 system-wide objectives.
 
 ## Objectives
 
