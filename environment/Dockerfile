@@ -6,8 +6,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Copy the rest of the application
-COPY . .
+# Copy only the necessary application source files explicitly to avoid adding tests/ and solution/ to the image
+COPY src/ ./src/
+COPY public/ ./public/
+COPY .firebaserc firebase.json firestore.rules storage.rules firestore.indexes.json ./
 
 # Set environment variable to make Jest exit properly
 ENV CI=true

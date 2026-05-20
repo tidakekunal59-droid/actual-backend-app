@@ -3,8 +3,8 @@
 # Ensure we're in the app directory
 cd /app
 
-# Copy the test file into the source tree for verification
-cp /tests/Scheduler.test.js src/scheduler/Scheduler.test.js
+# Copy the test file into the source tree for verification and strip the canary line
+tail -n +2 /tests/Scheduler.test.js > src/scheduler/Scheduler.test.js
 
 # Run the test specifically for the scheduler
 npm test -- src/scheduler/Scheduler.test.js --watchAll=false
