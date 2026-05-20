@@ -16,6 +16,8 @@ RUN apt-get update && apt-get install -y \
     iptables \
     ufw \
     nginx \
+    python3 \
+    python3-pytest \
     && rm -rf /var/lib/apt/lists/*
 
 # Mask some systemd services that don't make sense in a container
