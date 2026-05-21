@@ -1,0 +1,209 @@
+--- src/scheduler/Queue.js
++++ src/scheduler/Queue.js
+@@ -10,9 +10,16 @@
+       throw new Error('task.id is required');
+     }
+     // Tasks are stored by reference because Scheduler updates attempts on retry.
++    if (this.tasks.some(t => t.id === task.id) || this.processing.has(task.id)) {
++      return false;
++    }
+     if (task.attempts === undefined) {
+       task.attempts = 0;
+     }
++    if (task._seq === undefined) {
++      task._seq = this._nextSeq++;
++    }
+     this.tasks.push(task);
+     this.sort();
+     return true;
+@@ -24,19 +31,25 @@
+     if (task) {
+       task.priority = newPriority;
+       // Bug: queue is not re-sorted after priority changes.
++      this.sort();
+       return true;
+     }
+     return false;
+   }
+   dequeue(completedIds = new Set()) {
+     // Bug: ignores dependencies and always takes the front task, even if blocked.
+-    const task = this.tasks.shift();
+-    if (task) {
+-      this.processing.add(task.id);
++    const index = this.tasks.findIndex(task => {
++      const deps = Array.isArray(task.dependsOn) ? task.dependsOn : [];
++      return deps.every(depId => completedIds.has(depId));
++    });
++    if (index === -1) {
++      return null;
+     }
+-    return task || null;
++    const task = this.tasks.splice(index, 1)[0];
++    this.processing.add(task.id);
++    return task;
+   }
+   remove(taskId) {
+     const index = this.tasks.findIndex(t => t.id === taskId);
+@@ -48,12 +61,16 @@
+   }
+   complete(taskId) {
+     // Bug: processing ids are never cleared after completion.
++    this.processing.delete(taskId);
+   }
+   sort() {
+     // Bug: priority ties are not stable because no insertion sequence is used.
+-    this.tasks.sort((a, b) => (b.priority || 0) - (a.priority || 0));
++    this.tasks.sort((a, b) => {
++      const priorityDiff = (b.priority || 0) - (a.priority || 0);
++      if (priorityDiff !== 0) return priorityDiff;
++      return (a._seq || 0) - (b._seq || 0);
++    });
+   }
+   get size() {
+--- src/scheduler/Worker.js
++++ src/scheduler/Worker.js
+@@ -11,27 +11,45 @@
+     this.currentTask = task;
+     return new Promise((resolve, reject) => {
+       // Bug: a new listener is added on every task and never removed.
+-      this.scheduler.on('cancel', (taskId) => {
+-        if (this.currentTask && this.currentTask.id === taskId) {
+-          reject(new Error('Task Cancelled'));
+-          this.isIdle = true;
+-          this.currentTask = null;
+-        }
+-      });
+-      setTimeout(() => {
++      let settled = false;
++      let timer = null;
++      const cleanup = () => {
++        if (timer) {
++          clearTimeout(timer);
++          timer = null;
++        }
++        this.scheduler.removeListener('cancel', cancelListener);
++        this.isIdle = true;
++        this.currentTask = null;
++      };
++      const cancelListener = (taskId) => {
++        if (this.currentTask && this.currentTask.id === taskId) {
++          if (settled) return;
++          settled = true;
++          cleanup();
++          reject(new Error('Task Cancelled'));
++        }
++      };
++      this.scheduler.on('cancel', cancelListener);
++      timer = setTimeout(() => {
++        if (settled) return;
+         if (task.failTimes && (task.attempts || 0) < task.failTimes) {
++          settled = true;
++          cleanup();
+           reject(new Error('Transient task failure'));
+-          this.isIdle = true;
+-          this.currentTask = null;
+           return;
+         }
+         if (this.currentTask && this.currentTask.id === task.id) {
+-          resolve(task.result || 'Success');
+-          this.isIdle = true;
+-          this.currentTask = null;
++          settled = true;
++          const result = task.result || 'Success';
++          cleanup();
++          resolve(result);
+         }
+       }, task.duration || 10);
+     });
+--- src/scheduler/Scheduler.js
++++ src/scheduler/Scheduler.js
+@@ -11,11 +11,15 @@
+     this.completed = new Set();
+     this.failed = new Map();
+     this.results = new Map();
++    this.cancelled = new Set();
+   }
+   schedule(task) {
+-    this.queue.enqueue(task);
+-    this.processNext();
++    const inserted = this.queue.enqueue(task);
++    if (inserted) {
++      this.processNext();
++    }
++    return inserted;
+   }
+   updateTaskPriority(taskId, newPriority) {
+@@ -25,45 +29,59 @@
+   cancelTask(taskId) {
+     const removed = this.queue.remove(taskId);
+     if (removed) {
++      this.cancelled.add(taskId);
+       return true;
+     }
+     // Bug: emits cancel but does not guard retry/failure bookkeeping correctly.
+-    this.emit('cancel', taskId);
+-    return this.queue.processing.has(taskId);
++    if (this.queue.processing.has(taskId)) {
++      this.cancelled.add(taskId);
++      this.emit('cancel', taskId);
++      return true;
++    }
++    return false;
+   }
+   async processNext() {
+     if (this.isProcessing || this.queue.size === 0) return;
+     this.isProcessing = true;
+-    const idleWorkers = this.workers.filter(w => w.isIdle);
+-    if (idleWorkers.length > 0) {
+-      // Bug: async gap lets another processNext observe the same idle workers.
+-      await new Promise(resolve => setTimeout(resolve, 0));
+-      for (const worker of idleWorkers) {
+-        if (this.queue.size === 0) break;
+-        // Bug: does not re-check worker.isIdle and dequeue ignores dependencies.
+-        const task = this.queue.dequeue(this.completed);
+-        if (task) {
+-          worker.execute(task).then((result) => {
+-            this.queue.complete(task.id);
+-            this.completed.add(task.id);
+-            this.results.set(task.id, result);
+-            this.processNext();
+-          }).catch((error) => {
+-            this.queue.complete(task.id);
+-            this.failed.set(task.id, error.message);
+-            this.processNext();
+-          });
+-        }
++    try {
++      while (this.queue.size > 0) {
++        const worker = this.workers.find(w => w.isIdle);
++        if (!worker) break;
++        const task = this.queue.dequeue(this.completed);
++        if (!task) break;
++        worker.isIdle = false;
++        worker.execute(task).then((result) => {
++          this._finishTask(task, null, result);
++        }).catch((error) => {
++          this._finishTask(task, error);
++        });
+       }
++    } finally {
++      this.isProcessing = false;
+     }
+-    this.isProcessing = false;
++  }
++  _finishTask(task, error, result) {
++    this.queue.complete(task.id);
++    if (!error) {
++      this.completed.add(task.id);
++      this.results.set(task.id, result);
++    } else if (error.message === 'Task Cancelled' || this.cancelled.has(task.id)) {
++      this.failed.set(task.id, error.message);
++    } else if ((task.attempts || 0) < (task.retryLimit || 0)) {
++      task.attempts = (task.attempts || 0) + 1;
++      this.queue.enqueue(task);
++    } else {
++      this.failed.set(task.id, error.message);
++    }
++    this.processNext();
+   }
+ }
