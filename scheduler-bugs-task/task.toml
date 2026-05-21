@@ -1,0 +1,26 @@
+schema_version = "1.1"
+author_name = "Chitra"
+author_email = "novazeus12@gmail.com"
+tags = ["node", "javascript", "concurrency", "memory-leak", "jest", "scheduler"]
+difficulty = "hard"
+[task]
+name = "actual-backend-app/scheduler-bugs"
+description = "Fix priority, dependency, retry, cancellation, and worker-race bugs in a Node.js scheduler."
+authors = [{ name = "Chitra", email = "novazeus12@gmail.com" }]
+keywords = ["node", "javascript", "concurrency", "memory-leak", "scheduler"]
+[metadata]
+difficulty = "hard"
+difficulty_explanation = "Requires coordinated changes across queue ordering, dependency-aware dispatch, retry bookkeeping, worker cancellation cleanup, and processNext concurrency safety."
+solution_explanation = "The oracle patch implements stable priority ordering, dependency-aware dequeue, processing cleanup, temporary worker listener cleanup, cancellation tracking, retry handling, and synchronous worker reservation."
+verification_explanation = "The verifier runs pytest tests that execute Node.js snippets against the scheduler and writes /logs/verifier/reward.txt based on the pytest exit status."
+expert_time_estimate_hours = 1.25
+category = "programming"
+[verifier]
+timeout_sec = 90.0
+[environment]
+build_timeout_sec = 600.0
+os = "linux"
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+allow_internet = true
