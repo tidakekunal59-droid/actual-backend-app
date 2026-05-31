@@ -1,0 +1,22 @@
+author_name = "Jules"
+author_email = "jules@example.com"
+tags = ["physics"]
+
+[task]
+author_name = "Jules"
+author_email = "jules@example.com"
+tags = ["physics"]
+solution_explanation = "Implementation of calculate_velocity function that divides distance by time and handles zero time gracefully."
+verification_explanation = "Pytest verifying calculate_velocity correctly computes velocity and handles edge cases."
+expert_time_estimate_hours = 1
+
+[metadata]
+author_name = "Jules"
+author_email = "jules@example.com"
+tags = ["physics"]
+solution_explanation = "Implementation of calculate_velocity function that divides distance by time and handles zero time gracefully."
+verification_explanation = "Pytest verifying calculate_velocity correctly computes velocity and handles edge cases."
+expert_time_estimate_hours = 1
+
+[environment]
+# Do not specify docker_image if meant to be built locally from environment/Dockerfile
