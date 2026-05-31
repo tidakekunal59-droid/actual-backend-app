@@ -1,0 +1,2 @@
+Create a Python script in `physics.py` that implements a `calculate_velocity(distance, time)` function.
+If the time is 0, it should return 0 to avoid division by zero errors. Otherwise, it should return `distance / time`.
