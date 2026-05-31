@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Double Pendulum Chaos</title>
+<style>
+  :root {
+    --bg-color: #121212;
+    --panel-bg: #1e1e1e;
+    --text-color: #e0e0e0;
+    --accent-color: #00bcd4;
+    --accent-hover: #0097a7;
+    --ghost-color: rgba(255, 87, 34, 0.5);
+    --main-color: #ffffff;
+    --trail-color: rgba(0, 188, 212, 0.7);
+    --ghost-trail-color: rgba(255, 87, 34, 0.3);
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  header {
+    padding: 15px 20px;
+    background-color: var(--panel-bg);
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--accent-color);
+  }
+  .container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  canvas#simCanvas {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    background-color: #0a0a0a;
+    display: block;
+  }
+  .controls-panel {
+    width: 350px;
+    background-color: var(--panel-bg);
+    border-left: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .panel-section {
+    padding: 15px;
+    border-bottom: 1px solid #333;
+  }
+  .panel-section h2 {
+    margin-top: 0;
+    font-size: 1.1rem;
+    color: #fff;
+    margin-bottom: 15px;
+  }
+  .control-group {
+    margin-bottom: 12px;
+  }
+  .control-group label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+  }
+  .control-group input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+  }
+  .button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  button {
+    background-color: var(--accent-color);
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    flex: 1;
+    min-width: 80px;
+    transition: background-color 0.2s;
+  }
+  button:hover {
+    background-color: var(--accent-hover);
+  }
+  .presets {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .presets button {
+    background-color: #333;
+    font-size: 0.8rem;
+  }
+  .presets button:hover {
+    background-color: #444;
+  }
+  .readouts {
+    font-family: monospace;
+    font-size: 0.85rem;
+  }
+  .readout-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+  canvas#energyGraph {
+    width: 100%;
+    height: 80px;
+    background-color: #121212;
+    border: 1px solid #333;
+    margin-top: 10px;
+  }
+  .educational {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #bbb;
+  }
+  .overlay-text {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    pointer-events: none;
+    text-shadow: 1px 1px 2px #000;
+  }
+  .overlay-text h2 {
+    margin: 0 0 5px 0;
+    font-size: 1.2rem;
+  }
+  .overlay-text p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #bbb;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Double Pendulum Chaos</h1>
+  <div style="font-size: 0.9rem; color: #bbb;">Deterministic physics, unpredictable outcomes.</div>
+</header>
+
+<div class="container">
+  <div class="main-content">
+    <div class="overlay-text">
+      <h2>Simulation</h2>
+      <p>White: Main Pendulum <br> Orange: Ghost Pendulum (Tiny offset)</p>
+    </div>
+    <canvas id="simCanvas"></canvas>
+  </div>
+
+  <div class="controls-panel">
+    <div class="panel-section">
+      <div class="button-group">
+        <button id="btnPause">Pause</button>
+        <button id="btnReset">Reset</button>
+        <button id="btnDisturb">Disturb</button>
+      </div>
+      <h2>Presets</h2>
+      <div class="presets">
+        <button onclick="applyPreset('calm')">Calm Motion</button>
+        <button onclick="applyPreset('chaotic')">Chaotic</button>
+        <button onclick="applyPreset('flip')">High-Energy</button>
+        <button onclick="applyPreset('moon')">Moon Gravity</button>
+        <button onclick="applyPreset('heavy_lower')">Heavy Lower</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h2>Environment & Physics</h2>
+
+      <div class="control-group">
+        <label>Gravity (g) <span id="val_g">9.81</span></label>
+        <input type="range" id="param_g" min="0" max="30" step="0.1" value="9.81">
+      </div>
+      <div class="control-group">
+        <label>Damping <span id="val_d">0.00</span></label>
+        <input type="range" id="param_d" min="0" max="0.5" step="0.01" value="0">
+      </div>
+      <div class="control-group">
+        <label>Time Step (dt) <span id="val_dt">0.016</span></label>
+        <input type="range" id="param_dt" min="0.001" max="0.05" step="0.001" value="0.016">
+      </div>
+      <div class="control-group">
+        <label>Simulation Speed <span id="val_speed">1.0</span></label>
+        <input type="range" id="param_speed" min="0.1" max="5" step="0.1" value="1.0">
+      </div>
+
+      <h2 style="margin-top: 15px;">Properties</h2>
+      <div class="control-group">
+        <label>Length 1 (L1) <span id="val_L1">1.5</span></label>
+        <input type="range" id="param_L1" min="0.5" max="3" step="0.1" value="1.5">
+      </div>
+      <div class="control-group">
+        <label>Length 2 (L2) <span id="val_L2">1.5</span></label>
+        <input type="range" id="param_L2" min="0.5" max="3" step="0.1" value="1.5">
+      </div>
+      <div class="control-group">
+        <label>Mass 1 (m1) <span id="val_m1">1.0</span></label>
+        <input type="range" id="param_m1" min="0.1" max="5" step="0.1" value="1.0">
+      </div>
+      <div class="control-group">
+        <label>Mass 2 (m2) <span id="val_m2">1.0</span></label>
+        <input type="range" id="param_m2" min="0.1" max="5" step="0.1" value="1.0">
+      </div>
+
+      <h2 style="margin-top: 15px;">Initial State</h2>
+      <div class="control-group">
+        <label>Initial Angle 1 (θ1) <span id="val_th1">90°</span></label>
+        <input type="range" id="param_th1" min="-180" max="180" step="1" value="90">
+      </div>
+      <div class="control-group">
+        <label>Initial Angle 2 (θ2) <span id="val_th2">90°</span></label>
+        <input type="range" id="param_th2" min="-180" max="180" step="1" value="90">
+      </div>
+      <div class="control-group">
+        <label>Initial Ang. Vel 1 (ω1) <span id="val_w1">0</span></label>
+        <input type="range" id="param_w1" min="-10" max="10" step="0.1" value="0">
+      </div>
+      <div class="control-group">
+        <label>Initial Ang. Vel 2 (ω2) <span id="val_w2">0</span></label>
+        <input type="range" id="param_w2" min="-10" max="10" step="0.1" value="0">
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h2>Readouts</h2>
+      <div class="readouts">
+        <div class="readout-item"><span>Total Energy:</span> <span id="out_energy">0.00 J</span></div>
+        <div class="readout-item"><span>Energy Drift:</span> <span id="out_drift">0.00 J</span></div>
+        <div class="readout-item"><span>Ang. Vel 1 (ω1):</span> <span id="out_w1">0.00 rad/s</span></div>
+        <div class="readout-item"><span>Ang. Vel 2 (ω2):</span> <span id="out_w2">0.00 rad/s</span></div>
+        <div class="readout-item"><span>Separation (Δθ):</span> <span id="out_sep">0.00°</span></div>
+      </div>
+      <canvas id="energyGraph"></canvas>
+    </div>
+
+    <div class="panel-section educational">
+      <h2>Why is it chaotic?</h2>
+      <p>The double pendulum is governed by strict deterministic equations (Lagrangian mechanics). However, it is highly sensitive to initial conditions. A tiny difference between the main and ghost pendulums (like 0.001 radians) will eventually cause their paths to diverge entirely. This is the hallmark of chaos.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Physics constants and state
+  let config = {
+    g: 9.81,
+    L1: 1.5,
+    L2: 1.5,
+    m1: 1.0,
+    m2: 1.0,
+    damping: 0.0,
+    speed: 1.0,
+    dt: 0.016,
+    substeps: 4, // for numerical stability
+    ghostOffset: 0.001,
+    init_th1: Math.PI / 2,
+    init_th2: Math.PI / 2,
+    init_w1: 0,
+    init_w2: 0
+  };
+
+  let state = {
+    th1: config.init_th1,
+    th2: config.init_th2,
+    w1: config.init_w1,
+    w2: config.init_w2
+  };
+
+  let ghostState = {
+    th1: config.init_th1,
+    th2: config.init_th2 + config.ghostOffset,
+    w1: config.init_w1,
+    w2: config.init_w2
+  };
+
+  let trails = [];
+  let ghostTrails = [];
+  const maxTrail = 200;
+
+  let isPaused = false;
+  let canvas = document.getElementById('simCanvas');
+  let ctx = canvas.getContext('2d');
+
+  let graphCanvas = document.getElementById('energyGraph');
+  let graphCtx = graphCanvas.getContext('2d');
+  let energyHistory = [];
+  const maxGraphPoints = 100;
+  let initialEnergy = null;
+
+  function resize() {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function getDerivatives(s) {
+    const { th1, th2, w1, w2 } = s;
+    const { m1, m2, L1, L2, g, damping } = config;
+
+    let delta = th1 - th2;
+    let den1 = 2 * m1 + m2 - m2 * Math.cos(2 * th1 - 2 * th2);
+
+    let num1 = -g * (2 * m1 + m2) * Math.sin(th1)
+               - m2 * g * Math.sin(th1 - 2 * th2)
+               - 2 * Math.sin(th1 - th2) * m2 * (w2 * w2 * L2 + w1 * w1 * L1 * Math.cos(th1 - th2));
+    let alpha1 = num1 / (L1 * den1);
+
+    let num2 = 2 * Math.sin(th1 - th2) * (w1 * w1 * L1 * (m1 + m2)
+               + g * (m1 + m2) * Math.cos(th1)
+               + w2 * w2 * L2 * m2 * Math.cos(th1 - th2));
+    let alpha2 = num2 / (L2 * den1);
+
+    alpha1 -= damping * w1;
+    alpha2 -= damping * w2;
+
+    return { dth1: w1, dth2: w2, dw1: alpha1, dw2: alpha2 };
+  }
+
+  function rk4Step(s, dt) {
+    let k1 = getDerivatives(s);
+
+    let s2 = {
+      th1: s.th1 + 0.5 * k1.dth1 * dt,
+      th2: s.th2 + 0.5 * k1.dth2 * dt,
+      w1: s.w1 + 0.5 * k1.dw1 * dt,
+      w2: s.w2 + 0.5 * k1.dw2 * dt
+    };
+    let k2 = getDerivatives(s2);
+
+    let s3 = {
+      th1: s.th1 + 0.5 * k2.dth1 * dt,
+      th2: s.th2 + 0.5 * k2.dth2 * dt,
+      w1: s.w1 + 0.5 * k2.dw1 * dt,
+      w2: s.w2 + 0.5 * k2.dw2 * dt
+    };
+    let k3 = getDerivatives(s3);
+
+    let s4 = {
+      th1: s.th1 + k3.dth1 * dt,
+      th2: s.th2 + k3.dth2 * dt,
+      w1: s.w1 + k3.dw1 * dt,
+      w2: s.w2 + k3.dw2 * dt
+    };
+    let k4 = getDerivatives(s4);
+
+    return {
+      th1: s.th1 + (dt / 6.0) * (k1.dth1 + 2 * k2.dth1 + 2 * k3.dth1 + k4.dth1),
+      th2: s.th2 + (dt / 6.0) * (k1.dth2 + 2 * k2.dth2 + 2 * k3.dth2 + k4.dth2),
+      w1: s.w1 + (dt / 6.0) * (k1.dw1 + 2 * k2.dw1 + 2 * k3.dw1 + k4.dw1),
+      w2: s.w2 + (dt / 6.0) * (k1.dw2 + 2 * k2.dw2 + 2 * k3.dw2 + k4.dw2)
+    };
+  }
+
+  function calculateEnergy(s) {
+    const { th1, th2, w1, w2 } = s;
+    const { m1, m2, L1, L2, g } = config;
+
+    let ke = 0.5 * m1 * L1 * L1 * w1 * w1 +
+             0.5 * m2 * (L1 * L1 * w1 * w1 + L2 * L2 * w2 * w2 + 2 * L1 * L2 * w1 * w2 * Math.cos(th1 - th2));
+    let pe = -(m1 + m2) * g * L1 * Math.cos(th1) - m2 * g * L2 * Math.cos(th2);
+    return ke + pe;
+  }
+
+  function updatePhysics() {
+    if (isPaused) return;
+
+    let dt = (config.dt * config.speed) / config.substeps;
+
+    for (let i = 0; i < config.substeps; i++) {
+      state = rk4Step(state, dt);
+      ghostState = rk4Step(ghostState, dt);
+    }
+
+    state.th1 %= 2 * Math.PI;
+    state.th2 %= 2 * Math.PI;
+    ghostState.th1 %= 2 * Math.PI;
+    ghostState.th2 %= 2 * Math.PI;
+
+    updateTrails();
+    updateReadouts();
+  }
+
+  function updateTrails() {
+    const scale = 100;
+
+    // Main trail
+    let x1 = scale * config.L1 * Math.sin(state.th1);
+    let y1 = scale * config.L1 * Math.cos(state.th1);
+    let x2 = x1 + scale * config.L2 * Math.sin(state.th2);
+    let y2 = y1 + scale * config.L2 * Math.cos(state.th2);
+
+    trails.push({x: x2, y: y2});
+    if (trails.length > maxTrail) trails.shift();
+
+    // Ghost trail
+    let gx1 = scale * config.L1 * Math.sin(ghostState.th1);
+    let gy1 = scale * config.L1 * Math.cos(ghostState.th1);
+    let gx2 = gx1 + scale * config.L2 * Math.sin(ghostState.th2);
+    let gy2 = gy1 + scale * config.L2 * Math.cos(ghostState.th2);
+
+    ghostTrails.push({x: gx2, y: gy2});
+    if (ghostTrails.length > maxTrail) ghostTrails.shift();
+  }
+
+  function updateReadouts() {
+    let energy = calculateEnergy(state);
+    if (initialEnergy === null) initialEnergy = energy;
+    let drift = energy - initialEnergy;
+
+    let sep1 = Math.abs(state.th1 - ghostState.th1);
+    let sep2 = Math.abs(state.th2 - ghostState.th2);
+    sep1 = Math.atan2(Math.sin(sep1), Math.cos(sep1));
+    sep2 = Math.atan2(Math.sin(sep2), Math.cos(sep2));
+    let totalSep = (Math.abs(sep1) + Math.abs(sep2)) * (180 / Math.PI);
+
+    document.getElementById('out_energy').innerText = energy.toFixed(2) + " J";
+    document.getElementById('out_drift').innerText = drift.toFixed(4) + " J";
+    document.getElementById('out_w1').innerText = state.w1.toFixed(2) + " rad/s";
+    document.getElementById('out_w2').innerText = state.w2.toFixed(2) + " rad/s";
+    document.getElementById('out_sep').innerText = totalSep.toFixed(2) + "°";
+
+    energyHistory.push(energy);
+    if (energyHistory.length > maxGraphPoints) energyHistory.shift();
+  }
+
+  function drawPendulum(s, color, alpha, isMain) {
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 3;
+    const scale = 100;
+
+    let x1 = cx + scale * config.L1 * Math.sin(s.th1);
+    let y1 = cy + scale * config.L1 * Math.cos(s.th1);
+
+    let x2 = x1 + scale * config.L2 * Math.sin(s.th2);
+    let y2 = y1 + scale * config.L2 * Math.cos(s.th2);
+
+    ctx.globalAlpha = alpha;
+
+    // Arms
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = isMain ? 4 : 2;
+    ctx.stroke();
+
+    // Bob 1
+    ctx.beginPath();
+    ctx.arc(x1, y1, 10 + config.m1 * 3, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // Bob 2
+    ctx.beginPath();
+    ctx.arc(x2, y2, 10 + config.m2 * 3, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    ctx.globalAlpha = 1.0;
+  }
+
+  function drawTrails() {
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 3;
+
+    // Ghost Trails
+    if (ghostTrails.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(cx + ghostTrails[0].x, cy + ghostTrails[0].y);
+      for (let i = 1; i < ghostTrails.length; i++) {
+        ctx.lineTo(cx + ghostTrails[i].x, cy + ghostTrails[i].y);
+      }
+      ctx.strokeStyle = "rgba(255, 87, 34, 0.3)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Main Trails
+    if (trails.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(cx + trails[0].x, cy + trails[0].y);
+      for (let i = 1; i < trails.length; i++) {
+        ctx.lineTo(cx + trails[i].x, cy + trails[i].y);
+      }
+      ctx.strokeStyle = "rgba(0, 188, 212, 0.7)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+  }
+
+  function drawGraph() {
+    if (energyHistory.length === 0) return;
+    let w = graphCanvas.width;
+    let h = graphCanvas.height;
+
+    graphCtx.clearRect(0, 0, w, h);
+
+    let minE = Math.min(...energyHistory);
+    let maxE = Math.max(...energyHistory);
+
+    let range = maxE - minE;
+    if (range < 0.01) range = 0.01;
+    minE -= range * 0.1;
+    maxE += range * 0.1;
+
+    graphCtx.beginPath();
+    for (let i = 0; i < energyHistory.length; i++) {
+      let x = (i / (maxGraphPoints - 1)) * w;
+      let y = h - ((energyHistory[i] - minE) / (maxE - minE)) * h;
+      if (i === 0) graphCtx.moveTo(x, y);
+      else graphCtx.lineTo(x, y);
+    }
+    graphCtx.strokeStyle = "#00bcd4";
+    graphCtx.lineWidth = 2;
+    graphCtx.stroke();
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Grid
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = 1;
+    for(let i=0; i<canvas.width; i+=50) {
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+    }
+    for(let i=0; i<canvas.height; i+=50) {
+      ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+    }
+
+    drawTrails();
+    drawPendulum(ghostState, "#ff5722", 0.6, false);
+    drawPendulum(state, "#ffffff", 1.0, true);
+
+    // Anchor
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 3, 5, 0, 2 * Math.PI);
+    ctx.fillStyle = "#888";
+    ctx.fill();
+
+    drawGraph();
+  }
+
+  function loop() {
+    updatePhysics();
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  // Parameter bindings
+  function bindParam(id, key, multiplier=1, isInitialState=false, suffix='') {
+    let el = document.getElementById('param_' + id);
+    let valEl = document.getElementById('val_' + id);
+    if (!el) return;
+    el.addEventListener('input', (e) => {
+      let v = parseFloat(e.target.value) * multiplier;
+      config[key] = v;
+      valEl.innerText = e.target.value + suffix;
+
+      if (isInitialState) {
+        resetToInitial();
+      } else if (key === 'L1' || key === 'L2' || key === 'm1' || key === 'm2' || key === 'g') {
+        initialEnergy = calculateEnergy(state);
+      }
+    });
+  }
+
+  bindParam('g', 'g');
+  bindParam('d', 'damping');
+  bindParam('dt', 'dt');
+  bindParam('speed', 'speed');
+  bindParam('L1', 'L1');
+  bindParam('L2', 'L2');
+  bindParam('m1', 'm1');
+  bindParam('m2', 'm2');
+
+  bindParam('th1', 'init_th1', Math.PI/180, true, '°');
+  bindParam('th2', 'init_th2', Math.PI/180, true, '°');
+  bindParam('w1', 'init_w1', 1, true);
+  bindParam('w2', 'init_w2', 1, true);
+
+  document.getElementById('btnPause').addEventListener('click', (e) => {
+    isPaused = !isPaused;
+    e.target.innerText = isPaused ? 'Resume' : 'Pause';
+  });
+
+  document.getElementById('btnReset').addEventListener('click', () => {
+    resetToInitial();
+  });
+
+  document.getElementById('btnDisturb').addEventListener('click', () => {
+    state.w2 += 0.5;
+  });
+
+  function resetToInitial() {
+    state = { th1: config.init_th1, th2: config.init_th2, w1: config.init_w1, w2: config.init_w2 };
+    ghostState = { th1: config.init_th1, th2: config.init_th2 + config.ghostOffset, w1: config.init_w1, w2: config.init_w2 };
+    trails = [];
+    ghostTrails = [];
+    energyHistory = [];
+    initialEnergy = null;
+    if (isPaused) {
+      updateReadouts();
+      render();
+    }
+  }
+
+  function setSliderValues() {
+    document.getElementById('param_g').value = config.g; document.getElementById('val_g').innerText = config.g;
+    document.getElementById('param_d').value = config.damping; document.getElementById('val_d').innerText = config.damping;
+    document.getElementById('param_m1').value = config.m1; document.getElementById('val_m1').innerText = config.m1;
+    document.getElementById('param_m2').value = config.m2; document.getElementById('val_m2').innerText = config.m2;
+    document.getElementById('param_th1').value = Math.round(config.init_th1 * 180 / Math.PI); document.getElementById('val_th1').innerText = Math.round(config.init_th1 * 180 / Math.PI) + '°';
+    document.getElementById('param_th2').value = Math.round(config.init_th2 * 180 / Math.PI); document.getElementById('val_th2').innerText = Math.round(config.init_th2 * 180 / Math.PI) + '°';
+    document.getElementById('param_w1').value = config.init_w1; document.getElementById('val_w1').innerText = config.init_w1;
+    document.getElementById('param_w2').value = config.init_w2; document.getElementById('val_w2').innerText = config.init_w2;
+  }
+
+  window.applyPreset = function(preset) {
+    if (preset === 'calm') {
+      config.g = 9.81; config.damping = 0.05; config.init_th1 = 0.2; config.init_th2 = 0.2; config.init_w1 = 0; config.init_w2 = 0;
+    } else if (preset === 'chaotic') {
+      config.g = 9.81; config.damping = 0; config.init_th1 = Math.PI / 2; config.init_th2 = Math.PI / 2; config.init_w1 = 0; config.init_w2 = 0;
+    } else if (preset === 'flip') {
+      config.g = 9.81; config.damping = 0; config.init_th1 = Math.PI; config.init_th2 = Math.PI - 0.1; config.init_w1 = 0; config.init_w2 = 0;
+    } else if (preset === 'moon') {
+      config.g = 1.62; config.damping = 0; config.init_th1 = Math.PI / 2; config.init_th2 = Math.PI / 2; config.init_w1 = 0; config.init_w2 = 0;
+    } else if (preset === 'heavy_lower') {
+      config.g = 9.81; config.m1 = 0.5; config.m2 = 3.0; config.damping = 0; config.init_th1 = Math.PI / 2; config.init_th2 = Math.PI / 2; config.init_w1 = 0; config.init_w2 = 0;
+    }
+    setSliderValues();
+    resetToInitial();
+  };
+
+  // Start
+  initialEnergy = null;
+  loop();
+</script>
+</body>
+</html>
