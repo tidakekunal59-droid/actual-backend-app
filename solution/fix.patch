@@ -1,0 +1,74 @@
+--- src/scheduler/Queue.js	2026-05-20 16:52:45.536403913 +0000
++++ src/scheduler/Queue.js	2026-05-20 16:50:45.904405260 +0000
+@@ -13,7 +13,7 @@
+     const task = this.tasks.find(t => t.id === taskId);
+     if (task) {
+       task.priority = newPriority;
+-      // Bug: Missing this.sort() here causes priority inversion
++      this.sort();
+     }
+   }
+
+@@ -26,7 +26,7 @@
+   }
+
+   complete(taskId) {
+-    // Bug: Missing this.processing.delete(taskId) causes memory leak
++    this.processing.delete(taskId);
+   }
+
+   sort() {
+--- src/scheduler/Scheduler.js	2026-05-20 16:53:09.608403642 +0000
++++ src/scheduler/Scheduler.js	2026-05-20 16:51:07.876405012 +0000
+@@ -31,17 +31,17 @@
+     const idleWorkers = this.workers.filter(w => w.isIdle);
+
+     if (idleWorkers.length > 0) {
+-      // Bug: Race condition
+-      // Asynchronous gap before task assignment
+-      await new Promise(resolve => setTimeout(resolve, 0));
+-
+       for (const worker of idleWorkers) {
+         if (this.queue.size === 0) break;
+
+-        // This is buggy because worker.isIdle might be false now if another processNext was called concurrently
+-        // and assigned a task to this worker already.
++        // Ensure worker is still idle after potential await (though removed above, this is good practice)
++        if (!worker.isIdle) continue;
++
+         const task = this.queue.dequeue();
+         if (task) {
++           // Set worker to not idle immediately before executing to prevent race conditions
++           worker.isIdle = false;
++
+            worker.execute(task).then(() => {
+              this.queue.complete(task.id);
+              this.processNext();
+--- src/scheduler/Worker.js	2026-05-20 16:53:32.620403383 +0000
++++ src/scheduler/Worker.js	2026-05-20 16:51:28.048404785 +0000
+@@ -11,19 +11,21 @@
+     this.currentTask = task;
+
+     return new Promise((resolve, reject) => {
+-      // Bug: Event listener leak
+-      // Adding a new listener every time a task executes
+-      this.scheduler.on('cancel', (taskId) => {
++      const cancelListener = (taskId) => {
+         if (this.currentTask && this.currentTask.id === taskId) {
++          this.scheduler.removeListener('cancel', cancelListener);
+           reject(new Error('Task Cancelled'));
+           this.isIdle = true;
+           this.currentTask = null;
+         }
+-      });
++      };
++
++      this.scheduler.on('cancel', cancelListener);
+
+       // Simulate async task execution
+       setTimeout(() => {
+         if (this.currentTask && this.currentTask.id === task.id) {
++          this.scheduler.removeListener('cancel', cancelListener);
+           resolve(task.result || 'Success');
+           this.isIdle = true;
+           this.currentTask = null;
